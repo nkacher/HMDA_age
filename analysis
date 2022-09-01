@@ -1,0 +1,10 @@
+******************************
+******* HMDA Analysis ********
+******************************
+
+clear all
+set more off
+
+*use HMDA_US_2018_2021 from Mendeley
+*Kacher, Nicholas (2022), “HMDA_US_2018_2021”, Mendeley Data, V1, doi: 10.17632/ns2msxfmbc.1
+
