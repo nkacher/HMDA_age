@@ -1,0 +1,395 @@
+***** HMDA mortgage data by age *****
+*Author: Nicholas Kacher
+
+clear all
+set more off
+*set local directory
+
+********************************
+****** 1. HMDA Data Setup ******
+********************************
+
+**Source: https://ffiec.cfpb.gov/data-browser/data/2018?category=nationwide
+*Options: 2018, natiowide => dowload
+*Options: 2019, natiowide => dowload
+*Options: 2020, natiowide => dowload
+*Options: 2021, natiowide => dowload
+*All .dta files publicly available
+
+*Data dictionary: https://ffiec.cfpb.gov/documentation/2018/lar-data-fields/
+
+import delimited year_2018.csv, encoding(ISO-8859-1)clear
+save year_2018
+
+*Keeping only accepted applicaitons
+keep if action_taken == 1
+
+*Keeping only single-family homes
+keep if derived_dwelling_category == "Single Family (1-4 Units):Site-Built"
+
+*Keeping only loan for home purchases (excluding refi, home improvement, etc.)
+keep if loan_purpose == 1
+
+*Dropping reverse mortgages
+drop if reverse_mortgage == 1
+
+*Dropping business/commercial purchases
+drop if business_or_commercial_purpose == 1
+
+*Keeping only principal residences
+keep if occupancy_type == 1
+
+** Destringing variables
+destring county_code, gen(county)
+destring interest_rate loan_term property_value income, replace force
+
+** Keeping only relevant variables
+keep county loan_amount interest_rate loan_term property_value income applicant_age activity_year
+
+* Scaling income to $ rather than $1000 to line up with property value and loan amount
+replace income = income*1000
+
+rename activity_year year
+
+** Labels
+la var loan_amount "Loan Amount ($)"
+la var interest_rate "Interest Rate (%)"
+la var loan_term "Loan Term (Months)"
+la var property_value "Property Value ($)"
+la var income "Household Income ($)"
+la var applicant_age "Applicant Age Range (string)"
+
+** Indicator variables for applicant over/under age 35 & under 45
+gen age_under35 =1 if applicant_age == "<25" | applicant_age == "25-34"
+la var age_under35 "1 if applicant_age <35"
+replace age_under35 =0 if applicant_age == "35-44" | applicant_age == "45-54" | applicant_age == "55-64" | applicant_age == "65-74" | applicant_age == ">74"
+
+gen age_35plus =1 if applicant_age == "35-44" | applicant_age == "45-54" | applicant_age == "55-64" | applicant_age == "65-74" | applicant_age == ">74"
+la var age_35plus "1 if applicant_age <35"
+
+gen age_under45 =1 if applicant_age == "<25" | applicant_age == "25-34" | applicant_age == "35-34"
+replace age_under45=0 if applicant_age == "45-54" | applicant_age == "55-64" | applicant_age == "65-74" | applicant_age == ">74"
+
+la var age_under35 "1 if applicant_age <45"
+
+
+
+** Estimated monthly payment, based on loan amount, interest, and loan term
+destring interest_rate, replace force
+destring loan_term, replace force
+gen monthly_interest_rate = interest_rate/100/12
+gen monthly_payment = loan_amount*((monthly_interest_rate*(1+monthly_interest_rate)^loan_term))/((1+monthly_interest_rate)^loan_term-1)
+gen monthly_income = income/12
+gen monthly_payment_share =  monthly_payment / monthly_income
+
+la var monthly_payment "Estimated montly mortgage payment ($)"
+la var monthly_interest_rate "Interest rate (decimal) divided by 12, used to calculate monthly payment"
+la var monthly_income "Income / 12 ($)"
+la var monthly_payment_share "Ratio of monthly income to estimated monthly mortgage payment"
+
+** Dropping outliers
+drop if monthly_payment_share>1 | monthly_payment_share<0
+
+save HMDA_US2018_clean
+clear
+
+
+
+import delimited year_2019.csv, encoding(ISO-8859-1)clear
+save year_2019
+
+*Keeping only accepted applicaitons
+keep if action_taken == 1
+
+*Keeping only single-family homes
+keep if derived_dwelling_category == "Single Family (1-4 Units):Site-Built"
+
+*Keeping only loan for home purchases (excluding refi, home improvement, etc.)
+keep if loan_purpose == 1
+
+*Dropping reverse mortgages
+drop if reverse_mortgage == 1
+
+*Dropping business/commercial purchases
+drop if business_or_commercial_purpose == 1
+
+*Keeping only principal residences
+keep if occupancy_type == 1
+
+** Destringing variables
+destring county_code, gen(county)
+destring interest_rate loan_term property_value income, replace force
+
+** Keeping only relevant variables
+keep county loan_amount interest_rate loan_term property_value income applicant_age activity_year
+
+* Scaling income to $ rather than $1000 to line up with property value and loan amount
+replace income = income*1000
+
+rename activity_year year
+
+** Labels
+la var loan_amount "Loan Amount ($)"
+la var interest_rate "Interest Rate (%)"
+la var loan_term "Loan Term (Months)"
+la var property_value "Property Value ($)"
+la var income "Household Income ($)"
+la var applicant_age "Applicant Age Range (string)"
+
+** Indicator variables for applicant over/under age 35
+** Indicator variables for applicant over/under age 35 & under 45
+gen age_under35 =1 if applicant_age == "<25" | applicant_age == "25-34"
+la var age_under35 "1 if applicant_age <35"
+replace age_under35 =0 if applicant_age == "35-44" | applicant_age == "45-54" | applicant_age == "55-64" | applicant_age == "65-74" | applicant_age == ">74"
+
+gen age_35plus =1 if applicant_age == "35-44" | applicant_age == "45-54" | applicant_age == "55-64" | applicant_age == "65-74" | applicant_age == ">74"
+la var age_35plus "1 if applicant_age <35"
+
+gen age_under45 =1 if applicant_age == "<25" | applicant_age == "25-34" | applicant_age == "35-34"
+replace age_under45=0 if applicant_age == "45-54" | applicant_age == "55-64" | applicant_age == "65-74" | applicant_age == ">74"
+
+la var age_under35 "1 if applicant_age <45"
+
+** Estimated monthly payment, based on loan amount, interest, and loan term
+destring interest_rate, replace force
+destring loan_term, replace force
+gen monthly_interest_rate = interest_rate/100/12
+gen monthly_payment = loan_amount*((monthly_interest_rate*(1+monthly_interest_rate)^loan_term))/((1+monthly_interest_rate)^loan_term-1)
+gen monthly_income = income/12
+gen monthly_payment_share =  monthly_payment / monthly_income
+
+la var monthly_payment "Estimated montly mortgage payment ($)"
+la var monthly_interest_rate "Interest rate (decimal) divided by 12, used to calculate monthly payment"
+la var monthly_income "Income / 12 ($)"
+la var monthly_payment_share "Ratio of monthly income to estimated monthly mortgage payment"
+
+** Dropping outliers
+drop if monthly_payment_share>1 | monthly_payment_share<0
+
+save HMDA_US2019_clean
+clear
+
+
+
+import delimited year_2020.csv, encoding(ISO-8859-1)clear
+save year_2020
+
+*Keeping only accepted applicaitons
+keep if action_taken == 1
+
+*Keeping only single-family homes
+keep if derived_dwelling_category == "Single Family (1-4 Units):Site-Built"
+
+*Keeping only loan for home purchases (excluding refi, home improvement, etc.)
+keep if loan_purpose == 1
+
+*Dropping reverse mortgages
+drop if reverse_mortgage == 1
+
+*Dropping business/commercial purchases
+drop if business_or_commercial_purpose == 1
+
+*Keeping only principal residences
+keep if occupancy_type == 1
+
+** Destringing variables
+destring county_code, gen(county)
+destring interest_rate loan_term property_value income, replace force
+
+** Keeping only relevant variables
+keep county loan_amount interest_rate loan_term property_value income applicant_age activity_year
+
+* Scaling income to $ rather than $1000 to line up with property value and loan amount
+replace income = income*1000
+
+rename activity_year year
+
+** Labels
+la var loan_amount "Loan Amount ($)"
+la var interest_rate "Interest Rate (%)"
+la var loan_term "Loan Term (Months)"
+la var property_value "Property Value ($)"
+la var income "Household Income ($)"
+la var applicant_age "Applicant Age Range (string)"
+
+** Indicator variables for applicant over/under age 35 & under 45
+gen age_under35 =1 if applicant_age == "<25" | applicant_age == "25-34"
+la var age_under35 "1 if applicant_age <35"
+replace age_under35 =0 if applicant_age == "35-44" | applicant_age == "45-54" | applicant_age == "55-64" | applicant_age == "65-74" | applicant_age == ">74"
+
+gen age_35plus =1 if applicant_age == "35-44" | applicant_age == "45-54" | applicant_age == "55-64" | applicant_age == "65-74" | applicant_age == ">74"
+la var age_35plus "1 if applicant_age <35"
+
+gen age_under45 =1 if applicant_age == "<25" | applicant_age == "25-34" | applicant_age == "35-34"
+replace age_under45=0 if applicant_age == "45-54" | applicant_age == "55-64" | applicant_age == "65-74" | applicant_age == ">74"
+
+la var age_under35 "1 if applicant_age <45"
+
+** Estimated monthly payment, based on loan amount, interest, and loan term
+destring interest_rate, replace force
+destring loan_term, replace force
+gen monthly_interest_rate = interest_rate/100/12
+gen monthly_payment = loan_amount*((monthly_interest_rate*(1+monthly_interest_rate)^loan_term))/((1+monthly_interest_rate)^loan_term-1)
+gen monthly_income = income/12
+gen monthly_payment_share =  monthly_payment / monthly_income
+
+la var monthly_payment "Estimated montly mortgage payment ($)"
+la var monthly_interest_rate "Interest rate (decimal) divided by 12, used to calculate monthly payment"
+la var monthly_income "Income / 12 ($)"
+la var monthly_payment_share "Ratio of monthly income to estimated monthly mortgage payment"
+
+** Dropping outliers
+drop if monthly_payment_share>1 | monthly_payment_share<0
+
+save HMDA_US2020_clean
+clear
+
+
+
+
+import delimited year_2021.csv, encoding(ISO-8859-1)clear
+save year_2021
+
+*Keeping only accepted applicaitons
+keep if action_taken == 1
+
+*Keeping only single-family homes
+keep if derived_dwelling_category == "Single Family (1-4 Units):Site-Built"
+
+*Keeping only loan for home purchases (excluding refi, home improvement, etc.)
+keep if loan_purpose == 1
+
+*Dropping reverse mortgages
+drop if reverse_mortgage == 1
+
+*Dropping business/commercial purchases
+drop if business_or_commercial_purpose == 1
+
+*Keeping only principal residences
+keep if occupancy_type == 1
+
+** Destringing variables
+destring county_code, gen(county)
+destring interest_rate loan_term property_value income, replace force
+
+** Keeping only relevant variables
+keep county loan_amount interest_rate loan_term property_value income applicant_age activity_year
+
+* Scaling income to $ rather than $1000 to line up with property value and loan amount
+replace income = income*1000
+
+rename activity_year year
+
+** Labels
+la var loan_amount "Loan Amount ($)"
+la var interest_rate "Interest Rate (%)"
+la var loan_term "Loan Term (Months)"
+la var property_value "Property Value ($)"
+la var income "Household Income ($)"
+la var applicant_age "Applicant Age Range (string)"
+
+** Indicator variables for applicant over/under age 35
+** Indicator variables for applicant over/under age 35 & under 45
+gen age_under35 =1 if applicant_age == "<25" | applicant_age == "25-34"
+la var age_under35 "1 if applicant_age <35"
+replace age_under35 =0 if applicant_age == "35-44" | applicant_age == "45-54" | applicant_age == "55-64" | applicant_age == "65-74" | applicant_age == ">74"
+
+gen age_35plus =1 if applicant_age == "35-44" | applicant_age == "45-54" | applicant_age == "55-64" | applicant_age == "65-74" | applicant_age == ">74"
+la var age_35plus "1 if applicant_age <35"
+
+gen age_under45 =1 if applicant_age == "<25" | applicant_age == "25-34" | applicant_age == "35-34"
+replace age_under45=0 if applicant_age == "45-54" | applicant_age == "55-64" | applicant_age == "65-74" | applicant_age == ">74"
+
+la var age_under35 "1 if applicant_age <45"
+
+** Estimated monthly payment, based on loan amount, interest, and loan term
+destring interest_rate, replace force
+destring loan_term, replace force
+gen monthly_interest_rate = interest_rate/100/12
+gen monthly_payment = loan_amount*((monthly_interest_rate*(1+monthly_interest_rate)^loan_term))/((1+monthly_interest_rate)^loan_term-1)
+gen monthly_income = income/12
+gen monthly_payment_share =  monthly_payment / monthly_income
+
+la var monthly_payment "Estimated montly mortgage payment ($)"
+la var monthly_interest_rate "Interest rate (decimal) divided by 12, used to calculate monthly payment"
+la var monthly_income "Income / 12 ($)"
+la var monthly_payment_share "Ratio of monthly income to estimated monthly mortgage payment"
+
+** Dropping outliers
+drop if monthly_payment_share>1 | monthly_payment_share<0
+
+save HMDA_US2021_clean
+clear
+
+
+use HMDA_US2018_clean
+append using HMDA_US2019_clean
+append using HMDA_US2020_clean
+append using HMDA_US2021_clean
+destring county_code, gen(county) force
+
+save MHDA_US_no_controls
+clear
+
+
+
+
+********************************
+****** 2. County Controls ******
+********************************
+
+* USDA RUCC: https://www.ers.usda.gov/data-products/rural-urban-continuum-codes.aspx - 2013 Rural Urban Continuum Codes
+import excel ruralurbancodes2013.xls, sheet("Rural-urban Continuum Code 2013") firstrow
+destring FIPS, gen(county) force
+drop if missing(county)
+rename RUCC_2013 rucc
+save rucc
+clear
+
+* BEA personal income per capita: https://apps.bea.gov/iTable/iTable.cfm?reqid=70&step=1&isuri=1&acrdn=6#reqid=70&step=1&isuri=1&acrdn=6, CAINC1 2018-2020
+import excel BEA_CAINC1.xls, sheet("Sheet0") cellrange(A6:E3165) firstrow
+rename C inc_pc2018
+rename D inc_pc2019
+rename E inc_pc2020
+destring GeoFips, gen(county) force
+destring inc*, replace force
+drop if missing(county)
+gen inc_pc_mean = (inc_pc2018+inc_pc2019+inc_pc2020)/3
+save BEA_CAINC1, replace
+
+* Wharton Residential Land Use Regulation Index: http://www.jonathanhartley.net/data
+use WRLURI_01_15_2020
+gen countycode_str  = string(countycode18,"%03.0f")
+gen fips_str= statecode_str+ countycode_str
+destring fips_str, gen(county)
+collapse (mean) WRLURI18 if metro18==1 [aweight= weight_metro], by(county)
+drop if county<1000
+save WRLURI_county
+clear
+
+* USDA natural ammenity scale: https://www.ers.usda.gov/data-products/natural-amenities-scale/
+import excel USDA_natam.xlsx, sheet("NATAMENF") cellrange(A105:V3216) firstrow
+destring FIPSCode, gen(county)
+rename Scale natam_scale
+rename Low7High natam_rank
+drop FIPSCode formeasures STATE Countyname Division F G January194170 I July194170 K topographycode Waterarea Waterarea100
+save USDA_natam
+clear
+
+* Merging
+use MHDA_US_no_controls
+merge m:1 county using rucc, gen(_merge_rucc)
+merge m:1 county using BEA_CAINC1, gen(_merge_bea)
+merge m:1 county using WRLURI_county, gen(_merge_WRLURI)
+merge m:1 county using USDA_natam, gen(_merge_USDA)
+
+gen metro=1 if RUCC_2013<=3
+replace metro=0 if RUCC_2013>3
+la var metro "Indicator for metropolitan counties (RUCC 1-3)"
+
+
+
+
+
+
+
