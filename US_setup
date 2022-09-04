@@ -383,8 +383,8 @@ merge m:1 county using BEA_CAINC1, gen(_merge_bea)
 merge m:1 county using WRLURI_county, gen(_merge_WRLURI)
 merge m:1 county using USDA_natam, gen(_merge_USDA)
 
-gen metro=1 if RUCC_2013<=3
-replace metro=0 if RUCC_2013>3
+gen metro=1 if rucc<=3
+replace metro=0 if rucc>3
 la var metro "Indicator for metropolitan counties (RUCC 1-3)"
 
 *save HMDA_US_2018_2021
