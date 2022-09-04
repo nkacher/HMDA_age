@@ -328,7 +328,7 @@ append using HMDA_US2020_clean
 append using HMDA_US2021_clean
 destring county_code, gen(county) force
 
-save MHDA_US_no_controls
+save HMDA_US_no_controls
 clear
 
 
@@ -376,12 +376,21 @@ drop FIPSCode formeasures STATE Countyname Division F G January194170 I July1941
 save USDA_natam
 clear
 
+* FIPS to MSA crosswalk (NBER): https://www.nber.org/research/data/ssa-federal-information-processing-series-fips-core-based-statistical-area-cbsa-and-metropolitan-and
+use cbsatocountycrosswalk
+destring fipscounty, gen(county)
+drop ssacounty
+duplicates drop
+destring msa, 
+save msa_crosswalk, replace
+
 * Merging
-use MHDA_US_no_controls
+use HMDA_US_no_controls
 merge m:1 county using rucc, gen(_merge_rucc)
 merge m:1 county using BEA_CAINC1, gen(_merge_bea)
 merge m:1 county using WRLURI_county, gen(_merge_WRLURI)
 merge m:1 county using USDA_natam, gen(_merge_USDA)
+merge m:1 county using msa_crosswalk, gen(_merge_crosswalk)
 
 gen metro=1 if rucc<=3
 replace metro=0 if rucc>3
