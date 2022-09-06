@@ -8,3 +8,56 @@ set more off
 *use HMDA_US_2018_2021 from Mendeley
 *Kacher, Nicholas (2022), “HMDA_US_2018_2021”, Mendeley Data, V1, doi: 10.17632/ns2msxfmbc.1
 
+** Table 1
+* Share of mortgage purchases by age range
+tab applicant_age if applicant_age != "8888" & applicant_age != "9999" & metro==1 & year==2018
+tab applicant_age if applicant_age != "8888" & applicant_age != "9999" & metro==1 & year==2021
+
+** Figure 1
+* Map of share of mortgage purchase by buyers under age 35
+preserve
+
+collapse (mean) age_under35, by(county)
+drop if missing(county) | county<1000
+
+rename age_under35 under35_share
+la var under35_share "Share of mortgages from buyers under age 35, 2018-2021"
+
+maptile under35_share if metro==1, geo(county2010) mapif(metro==1) stateoutline(thin)
+
+restore
+
+** Figure 2
+* Percentage point change in share of mortgage purchase by buyers under age 35, 2018-2021
+
+preserve 
+
+keep if year==2018
+collapse (mean) age_under35, by(county)
+drop if missing(county) | county<1000
+
+rename age_under35 under35_share_2018
+la var under35_share "Share of mortgages from buyers under age 35, 2018"
+
+save u35_share_2018, replace
+clear
+
+restore
+preserve
+
+keep if year==2018
+collapse (mean) age_under35, by(county)
+drop if missing(county) | county<1000
+
+rename age_under35 under35_share_2021
+la var under35_share "Share of mortgages from buyers under age 35, 2021"
+save u35_share_2021, replace
+
+merge 1:1 county using u35_share_2018, gen(_merge_2018)
+gen u35_share_change = u35_share_2021-u35_share_2018
+
+maptile u35_share_change if metro==1, geo(county2010) mapif(metro==1) stateoutline(thin)
+
+restore
+
+
