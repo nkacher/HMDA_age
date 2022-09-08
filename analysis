@@ -61,3 +61,49 @@ maptile u35_share_change if metro==1, geo(county2010) mapif(metro==1) stateoutli
 restore
 
 
+
+
+
+
+*********************
+****** MSAs *********
+*********************
+
+use HMDA_US_2018_2021
+
+keep age_under35 monthly_payment_share property_value natam_scale income inc_pc_mean msa year
+collapse (mean) age_under35 monthly_payment_share property_value natam_scale income inc_pc_mean, by(msa year)
+
+drop if missing(year)
+rename age_under35 under35_share
+replace property_value = property_value/1000
+la var property_value "Property Value, $1000"
+replace under35_share = under35_share*100
+la var under35_share "Share of Buyers Under Age 35, %"
+sort msa year
+xtset msa year
+
+*Property value in 2018
+gen prop_value_2018_raw = property_value if year==2018
+bys msa: egen prop_value_2018 = mean(prop_value_2018_raw)
+drop prop_value_2018_raw
+
+*Change in under-35 share, 2018-2021
+gen u35_change_raw = d.under35_share
+gen u35_change_annual_pct = 100*(u35_change_raw/l.under35_share)
+bys msa: egen u35_share_change_annual_pct_mean = mean(u35_change_annual_pct)
+
+*Average annual change in property value
+gen prop_change_raw = d.property_value
+gen prop_change_pct = 100*(prop_change_raw/l.property_value)
+bys msa: egen prop_change_annual_pct_mean = mean(prop_change_pct)
+
+reg prop_change_annual_pct_mean u35_share_change_annual_pct_mean prop_value_2018 natam_scale inc_pc_mean if year == 2021, robust
+xtreg property_value under35_share, fe robust
+
+bys msa: egen mps_mean = mean(monthly_payment_share)
+reg monthly_payment_share u35_share_change_annual_pct_mean prop_value_2018 natam_scale inc_pc_mean if year == 2021, robust
+
+
+save HMDA_MSA_year, replace
+
